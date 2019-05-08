@@ -16,7 +16,7 @@ public class TapCode {
 		}
 
 		for (int i = 0; i < s.length(); i++) {
-			if ((Character.isLetter(s.charAt(i)) == false)) {
+			if (((Character.isLetter(s.charAt(i)) || Character.isWhitespace(s.charAt(i))) == false) ) {
 				return false;
 			}
 		}
