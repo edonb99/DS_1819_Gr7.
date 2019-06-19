@@ -1,0 +1,7 @@
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\bin\Debug\Server.exe.config
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\bin\Debug\Server.exe
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\bin\Debug\Server.pdb
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\obj\Debug\Server.csprojAssemblyReference.cache
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\obj\Debug\Server.csproj.CoreCompileInputs.cache
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\obj\Debug\Server.exe
+C:\Users\lenovo\Desktop\Siguri_2\Server\Server\obj\Debug\Server.pdb
