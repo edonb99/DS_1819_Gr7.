@@ -6,7 +6,9 @@ using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
@@ -200,70 +202,99 @@ namespace login_and_registration
 
 
 
+                UdpClient klienti = new UdpClient();
+                IPEndPoint ep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000);
+                klienti.Connect(ep);
 
-                // ****************
+                byte[] bytesend = Encoding.ASCII.GetBytes
+                                  (
+                                        textBoxFirstName.Text + " " +
+                                        textBoxLastName.Text + " " +
+                                        textBoxEmail.Text + " " +
+                                        textBoxUsername.Text + " " +
+                                        textBoxPassword.Text + " " +
+                                        textBoxPasswordConfirm.Text
+                                  );
+
+                klienti.Send(bytesend, bytesend.Length);
+
+                //var receivedData = klienti.Receive(ref ep);
+
+                //MessageBox.Show(receivedData.ToString());
+
+
+
+              
+
+            
+
+            klienti.Close();
+
+
+
+            // ****************
 
 
 
 
-                // shto nje user
+            // shto nje user
 
+            /*
+                        DB db = new DB();
+                        MySqlCommand command = new MySqlCommand("INSERT INTO `users`(`firstname`, `lastname`, `email`, `username`, `password`) VALUES (@fn, @ln, @email, @usn, @pass)", db.getConnection());
 
-                DB db = new DB();
-            MySqlCommand command = new MySqlCommand("INSERT INTO `users`(`firstname`, `lastname`, `email`, `username`, `password`) VALUES (@fn, @ln, @email, @usn, @pass)", db.getConnection());
+                        command.Parameters.Add("@fn", MySqlDbType.VarChar).Value = textBoxFirstName.Text;
+                        command.Parameters.Add("@ln", MySqlDbType.VarChar).Value = textBoxLastName.Text;
+                        command.Parameters.Add("@email", MySqlDbType.VarChar).Value = textBoxEmail.Text;
+                        command.Parameters.Add("@usn", MySqlDbType.VarChar).Value = textBoxUsername.Text;
+                        command.Parameters.Add("@pass", MySqlDbType.VarChar).Value = textBoxPassword.Text;
 
-            command.Parameters.Add("@fn", MySqlDbType.VarChar).Value = textBoxFirstName.Text;
-            command.Parameters.Add("@ln", MySqlDbType.VarChar).Value = textBoxLastName.Text;
-            command.Parameters.Add("@email", MySqlDbType.VarChar).Value = textBoxEmail.Text;
-            command.Parameters.Add("@usn", MySqlDbType.VarChar).Value = textBoxUsername.Text;
-            command.Parameters.Add("@pass", MySqlDbType.VarChar).Value = textBoxPassword.Text;
+                        // open the connection
+                        db.openConnection();
 
-            // open the connection
-            db.openConnection();
-
-            // check if the textboxes contains the default values 
-            if (!checkTextBoxesValues())
-            {
-                // check if the password equal the confirm password
-                if (textBoxPassword.Text.Equals(textBoxPasswordConfirm.Text))
-                {
-                    // check if this username already exists
-                    if (checkUsername())
-                    {
-                        MessageBox.Show("This Username Already Exists, Select A Different One", "Duplicate Username", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-                    }
-                    else
-                    {
-                        // execute the query
-                        if (command.ExecuteNonQuery() == 1)
+                        // check if the textboxes contains the default values 
+                        if (!checkTextBoxesValues())
                         {
-                            MessageBox.Show("Your Account Has Been Created", "Account Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            // check if the password equal the confirm password
+                            if (textBoxPassword.Text.Equals(textBoxPasswordConfirm.Text))
+                            {
+                                // check if this username already exists
+                                if (checkUsername())
+                                {
+                                    MessageBox.Show("This Username Already Exists, Select A Different One", "Duplicate Username", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
+                                }
+                                else
+                                {
+                                    // execute the query
+                                    if (command.ExecuteNonQuery() == 1)
+                                    {
+                                        MessageBox.Show("Your Account Has Been Created", "Account Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("ERROR");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show("Wrong Confirmation Password", "Password Error", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
+                            }
+
                         }
                         else
                         {
-                            MessageBox.Show("ERROR");
+                            MessageBox.Show("Enter Your Informations First", "Empty Data", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
                         }
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Wrong Confirmation Password", "Password Error", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-                }
-
-            }
-            else
-            {
-                MessageBox.Show("Enter Your Informations First", "Empty Data", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-            }
 
 
 
-            // close the connection
-            db.closeConnection();
-
-        }
+                        // close the connection
+                        db.closeConnection();*/
 
 
+
+            /*
         // check if the username already exists
         public Boolean checkUsername()
         {
@@ -317,8 +348,8 @@ namespace login_and_registration
 
         }
 
-       
-
+       */
+        }
         private void panel2_Paint(object sender, PaintEventArgs e)
         {
 
