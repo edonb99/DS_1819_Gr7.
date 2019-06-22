@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,7 +26,6 @@ namespace Server
 
         private static byte[] desKey;
         private static byte[] desIv;
-        public static string serverMessage;
 
 
         static void Main(string[] args)
@@ -53,6 +53,39 @@ namespace Server
                 Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));     //nese ka te dhena per tu lexuar, atehere i shfaqim ato 
 
                 string[] result = Encoding.ASCII.GetString(data, 0, recv).Split(' ');
+
+                // ***....
+                // ***....
+                for (int i = 0; i < data.Length; i++)
+                {
+                    Console.WriteLine(data[i] + " Length= " + result[i].Length);
+
+                }
+                Console.WriteLine(result.Length);
+
+
+                int messageLength = result[2].Length;
+
+                byte[] message = new byte[messageLength];
+
+                int length = result[1].Length;
+                Console.WriteLine(length);
+                desKey = new byte[length];
+                
+                desKey = DecryptDataOaepSha1(cert, Convert.FromBase64String(result[1]));
+                int ivlength = result[0].Length;
+
+                desIv = new byte[ivlength];
+
+                desIv = Convert.FromBase64String(result[0]);
+                Console.WriteLine("Gjatesia e pranuar" + data.Length);
+                Console.WriteLine(Convert.ToBase64String(desKey));
+
+                byte[] decryptedMessage = DekriptoDes(result[2]);
+
+                Console.WriteLine(Convert.ToBase64String(decryptedMessage));
+
+                string[] tedhenat = Encoding.UTF8.GetString(decryptedMessage).Split(':');
 
                 if (result.Length > 2)
                 {
@@ -84,9 +117,6 @@ namespace Server
                         cmd.Parameters.AddWithValue("@usn", signUp[3]);
                         cmd.Parameters.AddWithValue("@pass", hashedSaltedPass);
                         cmd.Parameters.AddWithValue("@salt", salt);
-
-
-
 
                         // check if the textboxes contains the default values 
                         if (!checkTextBoxesValues())
@@ -148,7 +178,6 @@ namespace Server
                         Console.WriteLine(claims.FirstOrDefault(e => e.Type.Equals(ClaimTypes.Email)).Value);
                     }
                     // *-*-/- 
-
 
 
                     // check if the username already exists
@@ -277,10 +306,6 @@ namespace Server
 
 
 
-
-
-
-
                 }
 
             }
@@ -328,6 +353,35 @@ namespace Server
             }
             byte[] hash = algorithm.ComputeHash(plainTextWithSaltBytes);
             return System.Convert.ToBase64String(hash); ;
+
+        }
+
+        public static byte[] DecryptDataOaepSha1(X509Certificate2 cert, byte[] data)
+        {
+            using (RSA rsa = cert.GetRSAPrivateKey())
+            {
+                return rsa.Decrypt(data, RSAEncryptionPadding.OaepSHA1);
+            }
+        }
+        private static X509Certificate2 GetCertificateFromStore(string certName)
+        {
+
+            // Get the certificate store for the current user.
+            X509Store store = new X509Store(StoreLocation.CurrentUser);
+            try
+            {
+                store.Open(OpenFlags.ReadOnly);
+                X509Certificate2Collection certCollection = store.Certificates;
+                X509Certificate2Collection currentCerts = certCollection.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                X509Certificate2Collection signingCert = currentCerts.Find(X509FindType.FindBySubjectDistinguishedName, certName, false);
+                if (signingCert.Count == 0)
+                    return null;
+                return signingCert[0];
+            }
+            finally
+            {
+                store.Close();
+            }
 
         }
 

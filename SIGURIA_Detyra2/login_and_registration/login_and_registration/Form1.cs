@@ -6,6 +6,8 @@ using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -73,7 +75,8 @@ namespace login_and_registration
             byte[] bytesend = Encoding.ASCII.GetBytes(textBoxUsername.Text + ' ' + textBoxPassword.Text);
 
             klienti.Send(bytesend, bytesend.Length);
-            Console.WriteLine("AAAAAAAAAAAaaa");
+            
+
 
             byte[] receivedData = klienti.Receive(ref ep);
             if (string.Equals(Encoding.ASCII.GetString(receivedData), "Wrong password/username"))
@@ -88,83 +91,108 @@ namespace login_and_registration
                
             Console.WriteLine(Encoding.ASCII.GetString(receivedData));
             grade.Text = Encoding.ASCII.GetString(receivedData);
-        }
-        //********************************** 
-        private bool validatePass()
-        {
-            string pattern = "^[\\S*$]"; // no spaces
-            if (textBoxPassword.Text.Length > 6 && Regex.IsMatch(textBoxPassword.Text, pattern))
+
+            X509Certificate2 cert = GetCertificateFromStore("CN=RootCA");
+            if (cert == null)
             {
-                textBoxPassword.Text = "";
-                return true;
+                Console.WriteLine("Certificate 'CN=CERT_SIGN_TEST_CERT' not found.");
+                Console.ReadLine();
             }
-            else
+
+            if (Validate())
             {
-                textBoxPassword.Text = "*Input more chars";
-                return false;
-            }
-        }
-        /*
-            private bool validateEmail()
-            {
-                string pattern = @"\A(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\Z";
-                if (Regex.IsMatch(textBoxUsername.Text, pattern, RegexOptions.IgnoreCase))
+                string email = textBoxUsername.Text.Trim();
+                string password = textBoxPassword.Text.Trim();
+                DES des = new DES();
+
+
+                string mesazhi = email + ":" + password + ":" + "blla";
+                Console.WriteLine(mesazhi);
+                byte[] encrytedData = des.Enkripto(mesazhi);
+
+                byte[] IV = des.getIV();
+                byte[] key = des.getKey();
+
+               
+                byte[] encryptedKey = EncryptDataOaepSha1(cert, key);
+
+                Console.WriteLine(encryptedKey.Length);
+                Console.WriteLine(Convert.ToBase64String(encryptedKey));
+
+                Console.WriteLine(Convert.ToBase64String(key));
+                Console.WriteLine(Convert.ToBase64String(DecryptDataOaepSha1(cert, encryptedKey)));
+
+
+
+                string delimiter = ".";
+                string fullmessageEncrypted = Convert.ToBase64String(IV) + delimiter + delimiter + Convert.ToBase64String(encrytedData);
+
+
+
+                Console.WriteLine("qa qova :" + fullmessageEncrypted.Length);
+                Console.WriteLine("IV:" + Convert.ToBase64String(IV));
+                Console.WriteLine("Qelsi: " + Convert.ToBase64String(encryptedKey));
+                Console.WriteLine("Mesazhi: " + Convert.ToBase64String(encrytedData));
+
+                if (Encoding.UTF8.GetString(des.Dekripto(Convert.ToBase64String(receivedData))).Substring(0, 2) == "OK")
                 {
-                textBoxUsername.Text = "";
-                    return true;
+                    MessageBox.Show("Successful Login");
                 }
                 else
                 {
-                textBoxUsername.Text = "* Wrong email";
-                    return false;
+                    MessageBox.Show("Login failed");
                 }
             }
-            */
-        //************************
 
+        }
+        //
 
+      
+        public static byte[] DecryptDataOaepSha1(X509Certificate2 cert, byte[] data)
+        {
+            using (RSA rsa = cert.GetRSAPrivateKey())
+            {
+                return rsa.Decrypt(data, RSAEncryptionPadding.OaepSHA1);
+            }
+        }
+        private static X509Certificate2 GetCertificateFromStore(string certName)
+        {
 
+            // Get the certificate store for the current user.
+            X509Store store = new X509Store(StoreLocation.CurrentUser);
+            try
+            {
+                store.Open(OpenFlags.ReadOnly);
 
+                // Place all certificates in an X509Certificate2Collection object.
+                X509Certificate2Collection certCollection = store.Certificates;
+                X509Certificate2Collection currentCerts = certCollection.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                X509Certificate2Collection signingCert = currentCerts.Find(X509FindType.FindBySubjectDistinguishedName, certName, false);
+                if (signingCert.Count == 0)
+                    return null;
+                // Return the first certificate in the collection, has the right name and is current.
+                return signingCert[0];
+            }
+            finally
+            {
+                store.Close();
+            }
 
+        }
 
+        public static byte[] EncryptDataOaepSha1(X509Certificate2 cert, byte[] data)
+        {
+            // GetRSAPublicKey returns an object with an independent lifetime, so it should be
+            // handled via a using statement.
+            using (RSA rsa = cert.GetRSAPublicKey())
+            {
+                // OAEP allows for multiple hashing algorithms, what was formermly just "OAEP" is
+                // now OAEP-SHA1.
+                return rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA1);
+            }
+        }
 
-        /*
-                    DB db = new DB();
-
-
-
-                    String username = textBoxUsername.Text;
-                    String password = textBoxPassword.Text;
-
-                    DataTable table = new DataTable();
-
-                    MySqlDataAdapter adapter = new MySqlDataAdapter();
-
-                    MySqlCommand command = new MySqlCommand("SELECT * FROM `users` WHERE `username` = @usn and `password` = @pass", db.getConnection());
-
-                    command.Parameters.Add("@usn", MySqlDbType.VarChar).Value = username;
-                    command.Parameters.Add("@pass", MySqlDbType.VarChar).Value = password;
-
-                    adapter.SelectCommand = command;
-
-                    adapter.Fill(table);
-
-                    // shikoje nese user ekziston ose jo
-                    if(table.Rows.Count > 0)
-                    {
-                        MessageBox.Show("YES");
-                    }
-                    else
-                    {
-                        MessageBox.Show("NO");
-                    }
-
-                    */
-    
-
-    
-
-                    private void labelGoToSignUp_Click(object sender, EventArgs e)
+    private void labelGoToSignUp_Click(object sender, EventArgs e)
                     {
                         this.Hide();
                         RegisterForm registerform = new RegisterForm();

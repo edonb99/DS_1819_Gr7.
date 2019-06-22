@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -194,7 +195,42 @@ namespace login_and_registration
 
         }
 
-        private void buttonCreateAccount_Click(object sender, EventArgs e)
+        private static X509Certificate2 GetCertificateFromStore(string certName)
+        {
+
+            // Get the certificate store for the current user.
+            X509Store store = new X509Store(StoreLocation.CurrentUser);
+            try
+            {
+                store.Open(OpenFlags.ReadOnly);
+
+                // Place all certificates in an X509Certificate2Collection object.
+                X509Certificate2Collection certCollection = store.Certificates;
+                X509Certificate2Collection currentCerts = certCollection.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                X509Certificate2Collection signingCert = currentCerts.Find(X509FindType.FindBySubjectDistinguishedName, certName, false);
+                if (signingCert.Count == 0)
+                    return null;
+                // Return the first certificate in the collection, has the right name and is current.
+                return signingCert[0];
+            }
+            finally
+            {
+                store.Close();
+            }
+
+        }
+
+        public static byte[] EncryptDataOaepSha1(X509Certificate2 cert, byte[] data)
+        {
+
+            using (RSA rsa = cert.GetRSAPublicKey())
+            {
+
+                return rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA1);
+            }
+        }
+
+            private void buttonCreateAccount_Click(object sender, EventArgs e)
         {
 
             //  *************
@@ -218,138 +254,47 @@ namespace login_and_registration
 
                 klienti.Send(bytesend, bytesend.Length);
 
-              //  var receivedData = klienti.Receive(ref ep);
 
-              //  MessageBox.Show(receivedData.ToString());
-
-
-
-              
-
-            
-
-         //   klienti.Close();
-
-
-
-            // ****************
-
-
-
-
-            // shto nje user
-
-            /*
-                        DB db = new DB();
-                        MySqlCommand command = new MySqlCommand("INSERT INTO `users`(`firstname`, `lastname`, `email`, `username`, `password`) VALUES (@fn, @ln, @email, @usn, @pass)", db.getConnection());
-
-                        command.Parameters.Add("@fn", MySqlDbType.VarChar).Value = textBoxFirstName.Text;
-                        command.Parameters.Add("@ln", MySqlDbType.VarChar).Value = textBoxLastName.Text;
-                        command.Parameters.Add("@email", MySqlDbType.VarChar).Value = textBoxEmail.Text;
-                        command.Parameters.Add("@usn", MySqlDbType.VarChar).Value = textBoxUsername.Text;
-                        command.Parameters.Add("@pass", MySqlDbType.VarChar).Value = textBoxPassword.Text;
-
-                        // open the connection
-                        db.openConnection();
-
-                        // check if the textboxes contains the default values 
-                        if (!checkTextBoxesValues())
-                        {
-                            // check if the password equal the confirm password
-                            if (textBoxPassword.Text.Equals(textBoxPasswordConfirm.Text))
-                            {
-                                // check if this username already exists
-                                if (checkUsername())
-                                {
-                                    MessageBox.Show("This Username Already Exists, Select A Different One", "Duplicate Username", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-                                }
-                                else
-                                {
-                                    // execute the query
-                                    if (command.ExecuteNonQuery() == 1)
-                                    {
-                                        MessageBox.Show("Your Account Has Been Created", "Account Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("ERROR");
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                MessageBox.Show("Wrong Confirmation Password", "Password Error", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-                            }
-
-                        }
-                        else
-                        {
-                            MessageBox.Show("Enter Your Informations First", "Empty Data", MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
-                        }
-
-
-
-                        // close the connection
-                        db.closeConnection();*/
-
-
-
-            /*
-        // check if the username already exists
-        public Boolean checkUsername()
-        {
-            DB db = new DB();
-
-            String username = textBoxUsername.Text;
-
-            DataTable table = new DataTable();
-
-            MySqlDataAdapter adapter = new MySqlDataAdapter();
-
-            MySqlCommand command = new MySqlCommand("SELECT * FROM `users` WHERE `username` = @usn", db.getConnection());
-
-            command.Parameters.Add("@usn", MySqlDbType.VarChar).Value = username;
-
-            adapter.SelectCommand = command;
-
-            adapter.Fill(table);
-
-            // check if this username already exists in the database
-            if (table.Rows.Count > 0)
+            //
+            X509Certificate2 cert = GetCertificateFromStore("CN=RootCA");
+            if (cert == null)
             {
-                return true;
-            }
-            else
-            {
-                return false;
+                Console.WriteLine("Certificate 'CN=CERT_SIGN_TEST_CERT' not found.");
+                Console.ReadLine();
             }
 
-        }
 
-        // check if the textboxes contains the default values
-        public Boolean checkTextBoxesValues()
-        {
-            String fname = textBoxFirstName.Text;
-            String lname = textBoxLastName.Text;
-            String email = textBoxEmail.Text;
-            String username = textBoxUsername.Text;
-            String password = textBoxPassword.Text;
 
-            if (fname.Equals("first name") || lname.Equals("last name") ||
-                email.Equals("email") || username.Equals("username")
-                || password.Equals("password"))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+          
+                string email = textBoxUsername.Text.Trim();
+                string password = textBoxPassword.Text.Trim();
 
-        }
 
-       */
-        }
+                DES des = new DES();
+
+                string mesazhi = email + ":" + password + ":" + "blla";
+                Console.WriteLine(mesazhi);
+                byte[] encrytedData = des.Enkripto(mesazhi);
+
+                byte[] IV = des.getIV();
+                byte[] key = des.getKey();
+
+                byte[] encryptedKey = EncryptDataOaepSha1(cert, key);
+
+                Console.WriteLine(encryptedKey.Length);
+                Console.WriteLine(Convert.ToBase64String(encryptedKey));
+
+                Console.WriteLine(Convert.ToBase64String(key));
+                Console.WriteLine(Convert.ToBase64String(DecryptDataOaepSha1(cert, encryptedKey)));
+
+
+                string delimiter = ".";
+                string fullmessageEncrypted = Convert.ToBase64String(IV) + delimiter + Convert.ToBase64String(encryptedKey) + delimiter + Convert.ToBase64String(encrytedData);
+
+        //
+
+
+    }
         private void panel2_Paint(object sender, PaintEventArgs e)
         {
 
@@ -361,7 +306,46 @@ namespace login_and_registration
             Form1 form1 = new Form1();
             form1.Show();
         }
+
+        private static X509Certificate2 GetCertificateFromStore(string certName)
+        {
+
+            // Get the certificate store for the current user.
+            X509Store store = new X509Store(StoreLocation.CurrentUser);
+            try
+            {
+                store.Open(OpenFlags.ReadOnly);
+
+                // Place all certificates in an X509Certificate2Collection object.
+                X509Certificate2Collection certCollection = store.Certificates;
+                // If using a certificate with a trusted root you do not need to FindByTimeValid, instead:
+                // currentCerts.Find(X509FindType.FindBySubjectDistinguishedName, certName, true);
+                X509Certificate2Collection currentCerts = certCollection.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                X509Certificate2Collection signingCert = currentCerts.Find(X509FindType.FindBySubjectDistinguishedName, certName, false);
+                if (signingCert.Count == 0)
+                    return null;
+                // Return the first certificate in the collection, has the right name and is current.
+                return signingCert[0];
+            }
+            finally
+            {
+                store.Close();
+            }
+
+        }
+
+
+        public static byte[] DecryptDataOaepSha1(X509Certificate2 cert, byte[] data)
+        {
+            // GetRSAPrivateKey returns an object with an independent lifetime, so it should be
+            // handled via a using statement.
+            using (RSA rsa = cert.GetRSAPrivateKey())
+            {
+                return rsa.Decrypt(data, RSAEncryptionPadding.OaepSHA1);
+            }
+        }
     }
+
 }
 
    
